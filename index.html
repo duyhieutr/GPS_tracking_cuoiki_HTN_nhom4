@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GPS_tracking</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+#map {
+    height: 100vh;
+    width: 100%;
+}
+.pulse {
+    background: rgba(255,0,0,0.4);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: pulse 1.5s infinite;
+    border: 2px solid red;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(3);
+        opacity: 0;
+    }
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDB0rAaA2QqO8at3eaaKKDm56CG6rIBPFQ",
+  authDomain: "polynomial-coda-389612.firebaseapp.com",
+  databaseURL: "https://polynomial-coda-389612-default-rtdb.firebaseio.com",
+  projectId: "polynomial-coda-389612",
+  storageBucket: "polynomial-coda-389612.firebasestorage.app",
+  messagingSenderId: "707499469844",
+  appId: "1:707499469844:web:e6bdb329fb4e8016740b01"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+// ================= MAP =================
+const map = L.map('map').setView([16.057100817549102, 108.18143734559466], 15);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+const marker = L.marker([16.057100817549102, 108.18143734559466]).addTo(map);
+let sosCircle = L.circle([16.057100817549102, 108.18143734559466], {
+    radius: 20,
+    color: 'red',
+    fillColor: 'red',
+    fillOpacity: 0.3
+}).addTo(map);
+let polyline = L.polyline([], { color: "blue", weight: 4 }).addTo(map);
+// ================= FIREBASE =================
+const gpsRef = ref(db, "gps/xe01");
+onValue(gpsRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const lat = data.lat;
+    const lng = data.lng;
+    const sos = data.sos;
+
+    if (!lat || !lng) return;
+    const pos = [lat, lng];
+    marker.setLatLng(pos);
+    sosCircle.setLatLng(pos);
+    map.panTo(pos);
+    polyline.addLatLng(pos);
+    if (sos == 1) {
+        marker.setIcon(L.divIcon({
+            className: "pulse"
+        }));
+        sosCircle.setRadius(80);
+        sosCircle.setStyle({
+            color: 'red',
+            fillColor: 'red',
+            fillOpacity: 0.4
+        });
+
+    } else {
+        marker.setIcon(new L.Icon.Default());
+        sosCircle.setRadius(20);
+        sosCircle.setStyle({
+            color: 'blue',
+            fillColor: 'blue',
+            fillOpacity: 0.2
+        });
+    }
+
+});
+
+</script>
+
+</body>
+</html>
